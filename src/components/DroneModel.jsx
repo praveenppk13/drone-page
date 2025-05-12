@@ -97,7 +97,7 @@ const DroneModel = ({
   useEffect(() => {
     if (modelRef.current) {
       if (interactive) {
-        // Animation for customization section (unchanged)
+        // Animation for customization section
         modelRef.current.position.set(0, -5, 8);
         modelRef.current.rotation.set(Math.PI / 6, Math.PI / 4, 0);
         modelRef.current.scale.set(0.2, 0.2, 0.2);
@@ -134,11 +134,10 @@ const DroneModel = ({
             ease: 'sine.inOut'
           }, '+=0.5');
       } else if (isHero) {
-        // Animation for hero section (optimized for mobile)
-        const isMobile = size.width < 768;
-        modelRef.current.position.set(0, isMobile ? -1 : -2, isMobile ? 2 : 4);
-        modelRef.current.rotation.set(0, 0, 0);
-        modelRef.current.scale.set(scale * 0.4, scale * 0.4, scale * 0.4);
+        // Animation for hero section
+        modelRef.current.position.set(0, -12, 18);
+        modelRef.current.rotation.set(Math.PI / 3, Math.PI / 2, Math.PI / 6);
+        modelRef.current.scale.set(0, 0, 0);
         
         const heroTimeline = gsap.timeline({
           defaults: { ease: 'power3.out' }
@@ -146,25 +145,33 @@ const DroneModel = ({
         
         heroTimeline
           .to(modelRef.current.scale, {
-            x: scale,
-            y: scale,
-            z: scale,
-            duration: isMobile ? 0.8 : 1.0,
-            ease: 'elastic.out(1, 0.5)'
+            x: scale * 0.6,
+            y: scale * 0.6,
+            z: scale * 0.6,
+            duration: 1.3,
+            ease: 'elastic.out(1, 0.5)',
+            delay: 0.2
           }, 0)
           .to(modelRef.current.position, {
             y: 0,
             z: 0,
-            duration: isMobile ? 0.8 : 1.2,
+            duration: 2.6,
             ease: 'power4.inOut'
-          }, 0)
+          }, 0.1)
           .to(modelRef.current.rotation, {
             x: 0.1,
             y: -0.2,
             z: 0,
-            duration: isMobile ? 0.8 : 1.2,
+            duration: 2.8,
             ease: 'power2.inOut'
-          }, 0)
+          }, 0.3)
+          .to(modelRef.current.scale, {
+            x: scale,
+            y: scale,
+            z: scale,
+            duration: 1.7,
+            ease: 'power2.out'
+          }, 1.2)
           .to(modelRef.current.position, {
             y: '+=0.3',
             repeat: -1,
@@ -182,7 +189,7 @@ const DroneModel = ({
           }, '-=1.8');
       }
     }
-  }, [interactive, scale, isHero, size.width]);
+  }, [interactive, scale, isHero]);
 
   // Auto-rotation and bobbing
   useFrame((state, delta) => {
@@ -198,7 +205,7 @@ const DroneModel = ({
 
   // Adjust camera for responsiveness
   useEffect(() => {
-    const camera = size.width < 768 ? { fov: 60, positionZ: 4 } : { fov: 50, positionZ: 5 };
+    const camera = size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
     return () => {
       // Cleanup if needed
     };
