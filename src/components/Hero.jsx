@@ -88,8 +88,12 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
           className="hero-canvas w-full md:w-1/2 h-[300px] sm:h-[400px] md:h-[500px]"
           style={{ x: negMouseX, y: negMouseY }}
         >
-          <Canvas camera={{ position: [0, 0, 5], fov: 50 }} shadows={window.innerWidth >= 768}>
-            <PerformanceMonitor factor={window.innerWidth < 768 ? 0.5 : 1} />
+          <Canvas
+            camera={{ position: [0, 0, window.innerWidth <= 320 ? 7 : window.innerWidth < 768 ? 6 : 5], fov: window.innerWidth <= 320 ? 70 : window.innerWidth < 768 ? 60 : 50 }}
+            shadows={window.innerWidth >= 768}
+            gl={{ antialias: window.innerWidth >= 768 }}
+          >
+            <PerformanceMonitor factor={window.innerWidth <= 320 ? 0.3 : window.innerWidth < 768 ? 0.5 : 1} />
             <ambientLight intensity={0.3} />
             <directionalLight position={[10, 10, 5]} intensity={1.5} castShadow={window.innerWidth >= 768} />
             <DroneModel 

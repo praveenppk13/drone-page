@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import gsap from 'gsap';
@@ -17,16 +17,15 @@ const DroneModel = ({
   const rotationSpeed = 0.075;
   const { size } = useThree();
   const hasLogged = useRef(false);
-  
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Clone the scene to avoid conflicts between canvases
   const clonedScene = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((child) => {
       if (child.isMesh && child.material) {
-        // Clone material and store original color
         child.material = child.material.clone();
         child.originalColor = child.material.color.clone();
-        // For customization section, switch to MeshBasicMaterial
         if (!isHero && (
           child.name === 'Object_150' || 
           child.name === 'Object_50' || 
@@ -40,6 +39,7 @@ const DroneModel = ({
         }
       }
     });
+    setIsLoaded(true); // Mark as loaded once scene is cloned
     return clone;
   }, [scene]);
 
@@ -61,26 +61,22 @@ const DroneModel = ({
     clonedScene.traverse((child) => {
       if (child.isMesh && child.material) {
         if (!isHero) {
-          // Apply color to body (Object_150 and Object_50)
           if (child.name === 'Object_150' || child.name === 'Object_50') {
             const targetColor = new THREE.Color(color || child.originalColor);
             child.material.color.set(targetColor);
             child.material.needsUpdate = true;
           }
-          // Apply color to propellers (Object_163)
           if (child.name === 'Object_163') {
             const targetPropellerColor = new THREE.Color(propellerColor || child.originalColor);
             child.material.color.set(targetPropellerColor);
             child.material.needsUpdate = true;
           }
-          // Apply color to steel body (Object_18 and Object_46)
           if (child.name === 'Object_18' || child.name === 'Object_46') {
             const targetSteelBodyColor = new THREE.Color(steelBodyColor || child.originalColor);
             child.material.color.set(targetSteelBodyColor);
             child.material.needsUpdate = true;
           }
         } else {
-          // Hero section: Use original colors
           if (child.originalColor) {
             child.material.color.set(child.originalColor);
             child.material.needsUpdate = true;
@@ -89,15 +85,13 @@ const DroneModel = ({
       }
     });
     
-    // Apply scale
     clonedScene.scale.set(scale, scale, scale);
   }, [clonedScene, color, propellerColor, steelBodyColor, scale, isHero]);
 
   // GSAP entry animation
   useEffect(() => {
-    if (modelRef.current) {
+    if (modelRef.current && isLoaded) {
       if (interactive) {
-        // Animation for customization section
         modelRef.current.position.set(0, -5, 8);
         modelRef.current.rotation.set(Math.PI / 6, Math.PI / 4, 0);
         modelRef.current.scale.set(0.2, 0.2, 0.2);
@@ -134,9 +128,9 @@ const DroneModel = ({
             ease: 'sine.inOut'
           }, '+=0.5');
       } else if (isHero) {
-        // Animation for hero section
-        modelRef.current.position.set(0, -12, 18);
-        modelRef.current.rotation.set(Math.PI / 3, Math.PI / 2, Math.PI / 6);
+        // Simplified animation for hero section
+        modelRef.current.position.set(0, -5, 5);
+        modelRef.current.rotation.set(0, Math.PI / 4, 0);
         modelRef.current.scale.set(0, 0, 0);
         
         const heroTimeline = gsap.timeline({
@@ -145,55 +139,38 @@ const DroneModel = ({
         
         heroTimeline
           .to(modelRef.current.scale, {
-            x: scale * 0.6,
-            y: scale * 0.6,
-            z: scale * 0.6,
-            duration: 1.3,
-            ease: 'elastic.out(1, 0.5)',
-            delay: 0.2
-          }, 0)
-          .to(modelRef.current.position, {
-            y: 0,
-            z: 0,
-            duration: 2.6,
-            ease: 'power4.inOut'
-          }, 0.1)
-          .to(modelRef.current.rotation, {
-            x: 0.1,
-            y: -0.2,
-            z: 0,
-            duration: 2.8,
-            ease: 'power2.inOut'
-          }, 0.3)
-          .to(modelRef.current.scale, {
             x: scale,
             y: scale,
             z: scale,
-            duration: 1.7,
-            ease: 'power2.out'
-          }, 1.2)
+            duration: 1.5,
+            ease: 'elastic.out(1, 0.7)',
+            delay: 0.5 // Increased delay to ensure rendering
+          })
           .to(modelRef.current.position, {
-            y: '+=0.3',
-            repeat: -1,
-            yoyo: true,
-            duration: 2.5,
-            ease: 'sine.inOut'
-          }, '+=0.3')
+            y: 0,
+            z: 0,
+            duration: 1.8,
+            ease: 'power3.out'
+          }, '<') // Start simultaneously with scale
           .to(modelRef.current.rotation, {
-            x: '+=0.08',
-            z: '+=0.05',
+            y: 0,
+            duration: 2,
+            ease: 'power3.out'
+          }, '<')
+          .to(modelRef.current.position, {
+            y: '+=0.2',
             repeat: -1,
             yoyo: true,
-            duration: 3.5,
+            duration: 2,
             ease: 'sine.inOut'
-          }, '-=1.8');
+          }, '+=0.5');
       }
     }
-  }, [interactive, scale, isHero]);
+  }, [interactive, scale, isHero, isLoaded]);
 
   // Auto-rotation and bobbing
   useFrame((state, delta) => {
-    if (modelRef.current) {
+    if (modelRef.current && isLoaded) {
       if (!interactive && !isHero) {
         modelRef.current.rotation.y += rotationSpeed * delta;
         modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
@@ -205,17 +182,15 @@ const DroneModel = ({
 
   // Adjust camera for responsiveness
   useEffect(() => {
-    const camera = size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
-    return () => {
-      // Cleanup if needed
-    };
+    const camera = size.width <= 320 ? { fov: 70, positionZ: 7 } : size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
+    // Note: Camera adjustments should be handled in the parent Canvas
   }, [size]);
 
-  return (
+  return isLoaded ? (
     <group ref={modelRef}>
       <primitive object={clonedScene} position={[0, 0, 0]} />
     </group>
-  );
+  ) : null;
 };
 
 export default DroneModel;
