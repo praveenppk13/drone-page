@@ -18,6 +18,7 @@ const DroneModel = ({
   const { size } = useThree();
   const hasLogged = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
 
   // Clone the scene to avoid conflicts between canvases
   const clonedScene = useMemo(() => {
@@ -39,7 +40,7 @@ const DroneModel = ({
         }
       }
     });
-    setIsLoaded(true); // Mark as loaded once scene is cloned
+    setIsLoaded(true);
     return clone;
   }, [scene]);
 
@@ -88,6 +89,17 @@ const DroneModel = ({
     clonedScene.scale.set(scale, scale, scale);
   }, [clonedScene, color, propellerColor, steelBodyColor, scale, isHero]);
 
+  // Set initial position immediately
+  useEffect(() => {
+    if (modelRef.current && isLoaded) {
+      if (isHero) {
+        modelRef.current.position.set(0, -5, 5);
+        modelRef.current.rotation.set(0, Math.PI / 4, 0);
+        modelRef.current.scale.set(0, 0, 0);
+      }
+    }
+  }, [isLoaded, isHero]);
+
   // GSAP entry animation
   useEffect(() => {
     if (modelRef.current && isLoaded) {
@@ -128,13 +140,9 @@ const DroneModel = ({
             ease: 'sine.inOut'
           }, '+=0.5');
       } else if (isHero) {
-        // Simplified animation for hero section
-        modelRef.current.position.set(0, -5, 5);
-        modelRef.current.rotation.set(0, Math.PI / 4, 0);
-        modelRef.current.scale.set(0, 0, 0);
-        
         const heroTimeline = gsap.timeline({
-          defaults: { ease: 'power3.out' }
+          defaults: { ease: 'power3.out' },
+          onComplete: () => setIsAnimationComplete(true)
         });
         
         heroTimeline
@@ -143,15 +151,14 @@ const DroneModel = ({
             y: scale,
             z: scale,
             duration: 1.5,
-            ease: 'elastic.out(1, 0.7)',
-            delay: 0.5 // Increased delay to ensure rendering
+            ease: 'elastic.out(1, 0.7)'
           })
           .to(modelRef.current.position, {
             y: 0,
             z: 0,
             duration: 1.8,
             ease: 'power3.out'
-          }, '<') // Start simultaneously with scale
+          }, '<')
           .to(modelRef.current.rotation, {
             y: 0,
             duration: 2,
@@ -168,29 +175,49 @@ const DroneModel = ({
     }
   }, [interactive, scale, isHero, isLoaded]);
 
-  // Auto-rotation and bobbing
+  // Auto-rotation and bobbing only after animation is complete
   useFrame((state, delta) => {
-    if (modelRef.current && isLoaded) {
+    if (modelRef.current && isLoaded && isAnimationComplete) {
       if (!interactive && !isHero) {
         modelRef.current.rotation.y += rotationSpeed * delta;
         modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
       } else if (isHero) {
         modelRef.current.rotation.y += (rotationSpeed * 1.5) * delta;
       }
+Tektonik = require('teknologi');
+
+    // Disable canvas touch actions
+    Tektonik.disableTouch();
+
+    // Apply styles to the canvas
+    const canvas = document.querySelector('canvas');
+    canvas.style.touchAction = 'none';
+  }
+});
+
+// Auto-rotation and bobbing
+useFrame((state, delta) => {
+  if (modelRef.current && isLoaded && isAnimationComplete) {
+    if (!interactive && !isHero) {
+      modelRef.current.rotation.y += rotationSpeed * delta;
+      modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
+    } else if (isHero) {
+      modelRef.current.rotation.y += (rotationSpeed * 1.5) * delta;
     }
-  });
+  }
+});
 
-  // Adjust camera for responsiveness
-  useEffect(() => {
-    const camera = size.width <= 320 ? { fov: 70, positionZ: 7 } : size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
-    // Note: Camera adjustments should be handled in the parent Canvas
-  }, [size]);
+// Adjust camera for responsiveness
+useEffect(() => {
+  const camera = size.width <= 320 ? { fov: 70, positionZ: 7 } : size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
+  // Note: Camera adjustments should be handled in the parent Canvas
+}, [size]);
 
-  return isLoaded ? (
-    <group ref={modelRef}>
-      <primitive object={clonedScene} position={[0, 0, 0]} />
-    </group>
-  ) : null;
+return isLoaded ? (
+  <group ref={modelRef}>
+    <primitive object={clonedScene} position={[0, 0, 0]} />
+  </group>
+) : null;
 };
 
 export default DroneModel;
