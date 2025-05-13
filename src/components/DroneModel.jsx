@@ -19,6 +19,15 @@ const DroneModel = ({
   const hasLogged = useRef(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAnimationComplete, setIsAnimationComplete] = useState(false);
+  
+  // Determine the appropriate scale based on screen width
+  const responsiveScale = useMemo(() => {
+    // Apply larger scale on mobile devices
+    if (window.innerWidth < 768) {
+      return isHero ? scale * 1.3 : scale * 1.2;
+    }
+    return scale;
+  }, [scale, isHero]);
 
   // Clone the scene to avoid conflicts between canvases
   const clonedScene = useMemo(() => {
@@ -92,8 +101,9 @@ const DroneModel = ({
       }
     });
     
-    clonedScene.scale.set(scale, scale, scale);
-  }, [clonedScene, color, propellerColor, steelBodyColor, scale, isHero, isLoaded]);
+    // Use responsive scale instead of fixed scale
+    clonedScene.scale.set(responsiveScale, responsiveScale, responsiveScale);
+  }, [clonedScene, color, propellerColor, steelBodyColor, responsiveScale, isHero, isLoaded]);
 
   // Set initial position and run animations
   useEffect(() => {
@@ -118,7 +128,7 @@ const DroneModel = ({
       });
       
       // Start with proper scale from the beginning to avoid jumping
-      modelRef.current.scale.set(scale, scale, scale);
+      modelRef.current.scale.set(responsiveScale, responsiveScale, responsiveScale);
       
       // Gentle floating animation
       heroTimeline.to(modelRef.current.position, {
@@ -154,9 +164,9 @@ const DroneModel = ({
           ease: 'elastic.out(1, 0.5)'
         }, 0.1)
         .to(modelRef.current.scale, {
-          x: scale,
-          y: scale,
-          z: scale,
+          x: responsiveScale,
+          y: responsiveScale,
+          z: responsiveScale,
           duration: 2,
           ease: 'elastic.out(1, 0.8)'
         }, 0.2)
@@ -172,10 +182,10 @@ const DroneModel = ({
       // Regular mode
       modelRef.current.position.set(0, 0, 0);
       modelRef.current.rotation.set(0, 0, 0);
-      modelRef.current.scale.set(scale, scale, scale);
+      modelRef.current.scale.set(responsiveScale, responsiveScale, responsiveScale);
       setIsAnimationComplete(true);
     }
-  }, [interactive, scale, isHero, isLoaded]);
+  }, [interactive, responsiveScale, isHero, isLoaded]);
 
   // Auto-rotation and bobbing
   useFrame((state, delta) => {

@@ -12,12 +12,12 @@ gsap.registerPlugin(TextPlugin);
 const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
   const parallax = useTransform(scrollYProgress, [0, 1], [0, 200]);
 
-  // Determine camera settings based on screen size
+  // Determine camera settings based on screen size with adjusted FOV for mobile
   const getCameraSettings = () => {
     const width = window.innerWidth;
-    if (width <= 320) return { position: [0, 0, 7], fov: 70 };
-    if (width < 768) return { position: [0, 0, 6], fov: 60 };
-    return { position: [0, 0, 5], fov: 50 };
+    if (width <= 320) return { position: [0, 0, 6.5], fov: 65 }; // Moved camera back for small phones
+    if (width < 768) return { position: [0, 0, 5.5], fov: 55 }; // Moved camera back for tablets/larger phones
+    return { position: [0, 0, 5], fov: 50 }; // Desktop remains the same
   };
 
   useEffect(() => {
@@ -94,9 +94,9 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
             Discover Now
           </motion.a>
         </motion.div>
-        {/* 3D Canvas */}
+        {/* 3D Canvas - Increased height for mobile */}
         <motion.div
-          className="hero-canvas w-full md:w-1/2 h-[300px] sm:h-[400px] md:h-[500px]"
+          className="hero-canvas w-full md:w-1/2 h-[350px] sm:h-[450px] md:h-[500px]"
           style={{ x: negMouseX, y: negMouseY }}
         >
           <Canvas
