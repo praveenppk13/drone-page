@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import gsap from 'gsap';
 import * as THREE from 'three';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'; // Import DRACOLoader
 
 const DroneModel = ({ 
   interactive = false, 
@@ -12,7 +13,20 @@ const DroneModel = ({
   scale = 1, 
   isHero = false 
 }) => {
-  const { scene } = useGLTF('/models/drone.glb');
+  // Configure DRACOLoader for useGLTF
+  const dracoLoader = useMemo(() => {
+    const draco = new DRACOLoader();
+    // Set path to Draco decoder files (using CDN for simplicity)
+    draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+    draco.setDecoderConfig({ type: 'js' }); // Use JavaScript decoder (can also use 'wasm' for better performance)
+    return draco;
+  }, []);
+
+  // Load the Draco-compressed model
+  const { scene } = useGLTF('/models/dronec.glb', true, (loader) => {
+    loader.setDRACOLoader(dracoLoader); // Attach DRACOLoader to GLTFLoader
+  });
+
   const modelRef = useRef();
   const rotationSpeed = 0.075;
   const { size } = useThree();
@@ -22,7 +36,6 @@ const DroneModel = ({
   
   // Determine the appropriate scale based on screen width
   const responsiveScale = useMemo(() => {
-    // Apply larger scale on mobile devices
     if (window.innerWidth < 768) {
       return isHero ? scale * 1.1 : scale * 1.1;
     }
@@ -95,7 +108,6 @@ const DroneModel = ({
       }
     });
     
-    // Use responsive scale instead of fixed scale
     clonedScene.scale.set(responsiveScale, responsiveScale, responsiveScale);
   }, [clonedScene, color, propellerColor, steelBodyColor, responsiveScale, isHero, isLoaded]);
 
@@ -103,25 +115,18 @@ const DroneModel = ({
   useEffect(() => {
     if (!modelRef.current || !isLoaded) return;
     
-    // Don't manipulate canvas styles directly here
-    // Let the parent Canvas component handle touch actions
-    
     if (isHero) {
-      // Set consistent initial positions for hero mode
       modelRef.current.position.set(0, 0, 0);
       modelRef.current.rotation.set(0, 0, 0);
       modelRef.current.visible = true;
       
-      // For hero, use a simplified animation that won't conflict with scrolling
       const heroTimeline = gsap.timeline({
         defaults: { duration: 1, ease: 'power3.out' },
         onComplete: () => setIsAnimationComplete(true)
       });
       
-      // Start with proper scale from the beginning to avoid jumping
       modelRef.current.scale.set(responsiveScale, responsiveScale, responsiveScale);
       
-      // Gentle floating animation
       heroTimeline.to(modelRef.current.position, {
         y: '+=0.2',
         repeat: -1,
@@ -131,7 +136,6 @@ const DroneModel = ({
       });
     } 
     else if (interactive) {
-      // Interactive mode for non-hero sections
       modelRef.current.position.set(0, -5, 8);
       modelRef.current.rotation.set(Math.PI / 6, Math.PI / 4, 0);
       modelRef.current.scale.set(0.2, 0.2, 0.2);
@@ -170,7 +174,6 @@ const DroneModel = ({
         }, '+=0.5');
     } 
     else {
-      // Regular mode
       modelRef.current.position.set(0, 0, 0);
       modelRef.current.rotation.set(0, 0, 0);
       modelRef.current.scale.set(responsiveScale, responsiveScale, responsiveScale);
@@ -182,15 +185,11 @@ const DroneModel = ({
   useFrame((state, delta) => {
     if (!modelRef.current || !isLoaded) return;
     
-    // Auto-rotation for all modes
     if (isHero) {
-      // Slower rotation for hero section
       modelRef.current.rotation.y += (rotationSpeed * 0.75) * delta;
     } else if (!interactive) {
-      // Regular rotation and bobbing for non-interactive mode
       modelRef.current.rotation.y += rotationSpeed * delta;
       
-      // Only apply bobbing if animation is complete
       if (isAnimationComplete) {
         modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
       }
