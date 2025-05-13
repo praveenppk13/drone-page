@@ -12,6 +12,14 @@ gsap.registerPlugin(TextPlugin);
 const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
   const parallax = useTransform(scrollYProgress, [0, 1], [0, 200]);
 
+  // Determine camera settings based on screen size
+  const getCameraSettings = () => {
+    const width = window.innerWidth;
+    if (width <= 320) return { position: [0, 0, 7], fov: 70 };
+    if (width < 768) return { position: [0, 0, 6], fov: 60 };
+    return { position: [0, 0, 5], fov: 50 };
+  };
+
   useEffect(() => {
     gsap.fromTo(
       '.cta-button',
@@ -20,10 +28,13 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
     );
     gsap.fromTo(
       '.hero-canvas',
-      { opacity: 0, scale: 0.8 },
-      { opacity: 1, scale: 1, duration: 1.2, ease: 'power3.out', delay: 0.3 }
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power3.out', delay: 0.3 }
     );
+    // Removed scale animation to prevent conflicts with 3D model
   }, []);
+
+  const cameraSettings = getCameraSettings();
 
   return (
     <motion.section
@@ -89,9 +100,10 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
           style={{ x: negMouseX, y: negMouseY }}
         >
           <Canvas
-            camera={{ position: [0, 0, window.innerWidth <= 320 ? 7 : window.innerWidth < 768 ? 6 : 5], fov: window.innerWidth <= 320 ? 70 : window.innerWidth < 768 ? 60 : 50 }}
+            camera={cameraSettings}
             shadows={window.innerWidth >= 768}
             gl={{ antialias: window.innerWidth >= 768 }}
+            style={{ touchAction: 'none' }}
           >
             <PerformanceMonitor factor={window.innerWidth <= 320 ? 0.3 : window.innerWidth < 768 ? 0.5 : 1} />
             <ambientLight intensity={0.3} />
@@ -99,7 +111,6 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
             <DroneModel 
               interactive={false} 
               scale={0.8} 
-              propellerEmissive={0} 
               isHero={true}
             />
             <Environment preset="studio" />

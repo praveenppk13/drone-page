@@ -40,9 +40,13 @@ const DroneModel = ({
         }
       }
     });
-    setIsLoaded(true);
     return clone;
-  }, [scene]);
+  }, [scene, isHero]);
+
+  // Set model as loaded after cloning
+  useEffect(() => {
+    setIsLoaded(true);
+  }, [clonedScene]);
 
   // Log mesh names once for debugging
   useEffect(() => {
@@ -59,6 +63,8 @@ const DroneModel = ({
 
   // Apply customization only for non-hero sections
   useEffect(() => {
+    if (!isLoaded) return;
+    
     clonedScene.traverse((child) => {
       if (child.isMesh && child.material) {
         if (!isHero) {
@@ -87,137 +93,114 @@ const DroneModel = ({
     });
     
     clonedScene.scale.set(scale, scale, scale);
-  }, [clonedScene, color, propellerColor, steelBodyColor, scale, isHero]);
+  }, [clonedScene, color, propellerColor, steelBodyColor, scale, isHero, isLoaded]);
 
-  // Set initial position immediately
+  // Set initial position and run animations
   useEffect(() => {
-    if (modelRef.current && isLoaded) {
-      if (isHero) {
-        modelRef.current.position.set(0, -5, 5);
-        modelRef.current.rotation.set(0, Math.PI / 4, 0);
-        modelRef.current.scale.set(0, 0, 0);
-      }
+    if (!modelRef.current || !isLoaded) return;
+    
+    // Disable canvas touch actions (fixed from broken code)
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      canvas.style.touchAction = 'none';
     }
-  }, [isLoaded, isHero]);
-
-  // GSAP entry animation
-  useEffect(() => {
-    if (modelRef.current && isLoaded) {
-      if (interactive) {
-        modelRef.current.position.set(0, -5, 8);
-        modelRef.current.rotation.set(Math.PI / 6, Math.PI / 4, 0);
-        modelRef.current.scale.set(0.2, 0.2, 0.2);
-        
-        const timeline = gsap.timeline({
-          defaults: { ease: 'elastic.out(1, 0.75)', duration: 2 }
-        });
-        
-        timeline
-          .to(modelRef.current.position, {
-            y: 0,
-            z: 0,
-            duration: 2.2,
-            ease: 'power4.out'
-          }, 0)
-          .to(modelRef.current.rotation, {
-            x: 0,
-            y: 0,
-            duration: 2.5,
-            ease: 'elastic.out(1, 0.5)'
-          }, 0.1)
-          .to(modelRef.current.scale, {
-            x: scale,
-            y: scale,
-            z: scale,
-            duration: 2,
-            ease: 'elastic.out(1, 0.8)'
-          }, 0.2)
-          .to(modelRef.current.position, {
-            y: '+=0.1',
-            repeat: -1,
-            yoyo: true,
-            duration: 1.5,
-            ease: 'sine.inOut'
-          }, '+=0.5');
-      } else if (isHero) {
-        const heroTimeline = gsap.timeline({
-          defaults: { ease: 'power3.out' },
-          onComplete: () => setIsAnimationComplete(true)
-        });
-        
-        heroTimeline
-          .to(modelRef.current.scale, {
-            x: scale,
-            y: scale,
-            z: scale,
-            duration: 1.5,
-            ease: 'elastic.out(1, 0.7)'
-          })
-          .to(modelRef.current.position, {
-            y: 0,
-            z: 0,
-            duration: 1.8,
-            ease: 'power3.out'
-          }, '<')
-          .to(modelRef.current.rotation, {
-            y: 0,
-            duration: 2,
-            ease: 'power3.out'
-          }, '<')
-          .to(modelRef.current.position, {
-            y: '+=0.2',
-            repeat: -1,
-            yoyo: true,
-            duration: 2,
-            ease: 'sine.inOut'
-          }, '+=0.5');
-      }
+    
+    if (isHero) {
+      // Set consistent initial positions for hero mode
+      modelRef.current.position.set(0, 0, 0);
+      modelRef.current.rotation.set(0, 0, 0);
+      modelRef.current.visible = true;
+      
+      // For hero, use a simplified animation that won't conflict with scrolling
+      const heroTimeline = gsap.timeline({
+        defaults: { duration: 1, ease: 'power3.out' },
+        onComplete: () => setIsAnimationComplete(true)
+      });
+      
+      // Start with proper scale from the beginning to avoid jumping
+      modelRef.current.scale.set(scale, scale, scale);
+      
+      // Gentle floating animation
+      heroTimeline.to(modelRef.current.position, {
+        y: '+=0.2',
+        repeat: -1,
+        yoyo: true,
+        duration: 2,
+        ease: 'sine.inOut'
+      });
+    } 
+    else if (interactive) {
+      // Interactive mode for non-hero sections
+      modelRef.current.position.set(0, -5, 8);
+      modelRef.current.rotation.set(Math.PI / 6, Math.PI / 4, 0);
+      modelRef.current.scale.set(0.2, 0.2, 0.2);
+      
+      const timeline = gsap.timeline({
+        defaults: { ease: 'elastic.out(1, 0.75)', duration: 2 },
+        onComplete: () => setIsAnimationComplete(true)
+      });
+      
+      timeline
+        .to(modelRef.current.position, {
+          y: 0,
+          z: 0,
+          duration: 2.2,
+          ease: 'power4.out'
+        }, 0)
+        .to(modelRef.current.rotation, {
+          x: 0,
+          y: 0,
+          duration: 2.5,
+          ease: 'elastic.out(1, 0.5)'
+        }, 0.1)
+        .to(modelRef.current.scale, {
+          x: scale,
+          y: scale,
+          z: scale,
+          duration: 2,
+          ease: 'elastic.out(1, 0.8)'
+        }, 0.2)
+        .to(modelRef.current.position, {
+          y: '+=0.1',
+          repeat: -1,
+          yoyo: true,
+          duration: 1.5,
+          ease: 'sine.inOut'
+        }, '+=0.5');
+    } 
+    else {
+      // Regular mode
+      modelRef.current.position.set(0, 0, 0);
+      modelRef.current.rotation.set(0, 0, 0);
+      modelRef.current.scale.set(scale, scale, scale);
+      setIsAnimationComplete(true);
     }
   }, [interactive, scale, isHero, isLoaded]);
 
-  // Auto-rotation and bobbing only after animation is complete
+  // Auto-rotation and bobbing
   useFrame((state, delta) => {
-    if (modelRef.current && isLoaded && isAnimationComplete) {
-      if (!interactive && !isHero) {
-        modelRef.current.rotation.y += rotationSpeed * delta;
-        modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
-      } else if (isHero) {
-        modelRef.current.rotation.y += (rotationSpeed * 1.5) * delta;
-      }
-Tektonik = require('teknologi');
-
-    // Disable canvas touch actions
-    Tektonik.disableTouch();
-
-    // Apply styles to the canvas
-    const canvas = document.querySelector('canvas');
-    canvas.style.touchAction = 'none';
-  }
-});
-
-// Auto-rotation and bobbing
-useFrame((state, delta) => {
-  if (modelRef.current && isLoaded && isAnimationComplete) {
-    if (!interactive && !isHero) {
+    if (!modelRef.current || !isLoaded) return;
+    
+    // Auto-rotation for all modes
+    if (isHero) {
+      // Slower rotation for hero section
+      modelRef.current.rotation.y += (rotationSpeed * 0.75) * delta;
+    } else if (!interactive) {
+      // Regular rotation and bobbing for non-interactive mode
       modelRef.current.rotation.y += rotationSpeed * delta;
-      modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
-    } else if (isHero) {
-      modelRef.current.rotation.y += (rotationSpeed * 1.5) * delta;
+      
+      // Only apply bobbing if animation is complete
+      if (isAnimationComplete) {
+        modelRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.15;
+      }
     }
-  }
-});
+  });
 
-// Adjust camera for responsiveness
-useEffect(() => {
-  const camera = size.width <= 320 ? { fov: 70, positionZ: 7 } : size.width < 768 ? { fov: 60, positionZ: 6 } : { fov: 50, positionZ: 5 };
-  // Note: Camera adjustments should be handled in the parent Canvas
-}, [size]);
-
-return isLoaded ? (
-  <group ref={modelRef}>
-    <primitive object={clonedScene} position={[0, 0, 0]} />
-  </group>
-) : null;
+  return isLoaded ? (
+    <group ref={modelRef}>
+      <primitive object={clonedScene} position={[0, 0, 0]} />
+    </group>
+  ) : null;
 };
 
 export default DroneModel;
