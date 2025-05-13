@@ -103,7 +103,14 @@ const Hero = ({ scrollYProgress, mouseX, mouseY, negMouseX, negMouseY }) => {
             camera={cameraSettings}
             shadows={window.innerWidth >= 768}
             gl={{ antialias: window.innerWidth >= 768 }}
-            style={{ touchAction: 'none' }}
+            style={{ 
+              touchAction: 'auto',  // Changed from 'none' to 'auto' to enable scrolling
+              pointerEvents: 'none' // Added to make the canvas not capture pointer events
+            }}
+            onCreated={({ gl }) => {
+              gl.domElement.style.touchAction = 'auto'; // Ensure touch scrolling works
+              gl.domElement.style.pointerEvents = 'none'; // Don't capture pointer events
+            }}
           >
             <PerformanceMonitor factor={window.innerWidth <= 320 ? 0.3 : window.innerWidth < 768 ? 0.5 : 1} />
             <ambientLight intensity={0.3} />

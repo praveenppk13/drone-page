@@ -57,15 +57,9 @@ const DroneModel = ({
     setIsLoaded(true);
   }, [clonedScene]);
 
-  // Log mesh names once for debugging
+  // Keep track of whether component has initialized
   useEffect(() => {
     if (!hasLogged.current) {
-      console.log('Drone Model Mesh Names:');
-      clonedScene.traverse((child) => {
-        if (child.isMesh) {
-          console.log(`- ${child.name || 'Unnamed Mesh'}`);
-        }
-      });
       hasLogged.current = true;
     }
   }, [clonedScene]);
@@ -109,11 +103,8 @@ const DroneModel = ({
   useEffect(() => {
     if (!modelRef.current || !isLoaded) return;
     
-    // Disable canvas touch actions (fixed from broken code)
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      canvas.style.touchAction = 'none';
-    }
+    // Don't manipulate canvas styles directly here
+    // Let the parent Canvas component handle touch actions
     
     if (isHero) {
       // Set consistent initial positions for hero mode
