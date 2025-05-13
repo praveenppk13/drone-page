@@ -24,7 +24,7 @@ const DroneModel = ({
   const responsiveScale = useMemo(() => {
     // Apply larger scale on mobile devices
     if (window.innerWidth < 768) {
-      return isHero ? scale * 1.3 : scale * 1.2;
+      return isHero ? scale * 1.1 : scale * 1.1;
     }
     return scale;
   }, [scale, isHero]);
